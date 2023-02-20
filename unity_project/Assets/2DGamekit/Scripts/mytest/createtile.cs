@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using BTAI;
+using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -13,10 +14,13 @@ public class createtile : MonoBehaviour
     [SerializeField] private Canvas m_Canvas;
     [SerializeField] private Tilemap tilemap;
     [SerializeField] private TileBase tile;
+    [SerializeField] private TMP_Text photoIdxUI;
     private Vector3Int m_Pos = new Vector3Int(2,2,0);
 
     public int PhotoCap = 10;
     [System.NonSerialized] public List<(TileBase[], int, int)> PicStorageTile = new List<(TileBase[], int, int)>();
+    [System.NonSerialized] public int photoIdx = 0;
+    
     private Vector2 boxBorderOffset = new Vector2(22, 22); // in screen space, pixel count
     private bool isSelecting = false;
     private bool isPlacing = false;
@@ -66,8 +70,10 @@ public class createtile : MonoBehaviour
             // L to place photo, if there is any photo taken
             Debug.Log("Placing Photo.");
             isPlacing = true;
+            // reset photo index
+            photoIdx = 0;
         }
-        
+
         // Camera Mode
         if (isSelecting)
         {
@@ -84,6 +90,7 @@ public class createtile : MonoBehaviour
         if (isPlacing)
         {
             UpdateSelectionBox(isPlacing);
+            SelectPhotoIndex();
             if (Input.GetMouseButtonDown(0))
             {
                 PlaceObjects();
@@ -145,19 +152,58 @@ public class createtile : MonoBehaviour
 
     }
 
+    void SelectPhotoIndex()
+    {
+        var totalLength = PicStorageTile.Count;
+        // enable photo idx UI
+        photoIdxUI.gameObject.SetActive(true);
+        // scroll through photos
+        if (Input.GetAxisRaw("Mouse ScrollWheel") > 0)
+        {
+            // scroll up
+            if (photoIdx < totalLength - 1)
+            {
+                photoIdx += 1;
+            }
+            else
+            {
+                photoIdx = 0;
+            }
+            Debug.Log("Scroll Up");
+        } else if (Input.GetAxisRaw("Mouse ScrollWheel") < 0)
+        {
+            // scroll down
+            if (photoIdx > 0)
+            {
+                photoIdx -= 1;
+            }
+            else
+            {
+                photoIdx = totalLength - 1;
+            }
+            Debug.Log("Scroll Down");
+        }
+        // update photo idx UI
+        photoIdxUI.text = "Photo: " + photoIdx.ToString("0");
+
+    }
+    
     void PlaceObjects()
     {
+        // disable photo idx UI
+        photoIdxUI.gameObject.SetActive(false);
+        
         Vector3 relativePos = targetCam.ScreenToWorldPoint(Input.mousePosition);
         relativePos.z = targetCam.nearClipPlane;
         Debug.Log(relativePos);
         Vector3Int start_pos = new Vector3Int(Mathf.FloorToInt(relativePos.x), Mathf.FloorToInt(relativePos.y), 0);
-        start_pos -= new Vector3Int(Mathf.FloorToInt(PicStorageTile[0].Item2/2), Mathf.FloorToInt(PicStorageTile[0].Item3/2), 0);
+        start_pos -= new Vector3Int(Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), 0);
         // now only place the first picture
-        for (int i = 0; i < PicStorageTile[0].Item1.Length; i++)
+        for (int i = 0; i < PicStorageTile[photoIdx].Item1.Length; i++)
         {
-            if (PicStorageTile[0].Item1[i] is not null && PicStorageTile[0].Item1[i].GetType() == typeof(RuleTile))
+            if (PicStorageTile[photoIdx].Item1[i] is not null && PicStorageTile[photoIdx].Item1[i].GetType() == typeof(RuleTile))
             {
-                tilemap.SetTile(start_pos + new Vector3Int(i % PicStorageTile[0].Item2, Mathf.FloorToInt(i/PicStorageTile[0].Item2) ,0), tile);
+                tilemap.SetTile(start_pos + new Vector3Int(i % PicStorageTile[photoIdx].Item2, Mathf.FloorToInt(i/PicStorageTile[photoIdx].Item2) ,0), tile);
             }
             
         }
