@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using BTAI;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -14,8 +15,11 @@ public class createtile : MonoBehaviour
     [SerializeField] private TileBase tile;
     private Vector3Int m_Pos = new Vector3Int(2,2,0);
 
+    public int PhotoCap = 10;
+    [System.NonSerialized] public List<(TileBase[], int, int)> PicStorageTile = new List<(TileBase[], int, int)>();
     private Vector2 boxBorderOffset = new Vector2(22, 22); // in screen space, pixel count
     private bool isSelecting = false;
+    private bool isPlacing = false;
     public RectTransform selectionBox;
     // Start is called before the first frame update
     void Start()
@@ -54,25 +58,43 @@ public class createtile : MonoBehaviour
             Debug.Log("Exiting Camera Mode.");
             // Exit camera mode.
             isSelecting = false;
-            UpdateSelectionBox();
+            UpdateSelectionBox(isSelecting);
+        }
+
+        if (Input.GetKeyDown(KeyCode.L) && PicStorageTile.Count > 0)
+        {
+            // L to place photo, if there is any photo taken
+            Debug.Log("Placing Photo.");
+            isPlacing = true;
         }
         
         // Camera Mode
         if (isSelecting)
         {
-            UpdateSelectionBox();
+            UpdateSelectionBox(isSelecting);
             if (Input.GetMouseButtonDown(0))
             {
                 // make selection
                 SelectObjects();
                 isSelecting = false;
-                UpdateSelectionBox();
+                UpdateSelectionBox(isSelecting);
+            }
+        }
+        // Placing Mode
+        if (isPlacing)
+        {
+            UpdateSelectionBox(isPlacing);
+            if (Input.GetMouseButtonDown(0))
+            {
+                PlaceObjects();
+                isPlacing = false;
+                UpdateSelectionBox(isPlacing);
             }
         }
     }
-    void UpdateSelectionBox()
+    void UpdateSelectionBox(bool update)
     {
-        selectionBox.gameObject.SetActive(isSelecting);
+        selectionBox.gameObject.SetActive(update);
         float width = 300; // need tweak
         float height = 400; // need tweak
         selectionBox.sizeDelta = new Vector2(width, height);
@@ -107,14 +129,38 @@ public class createtile : MonoBehaviour
         TileBase[] selectedTiles = tilemap.GetTilesBlock(bounds);
 
         Debug.Log(selectedTiles.Length);
-        foreach (TileBase selected in selectedTiles)
-        {
-            if (selected is not null && selected.GetType() == typeof(RuleTile))
-            {
-                Debug.Log(selected);
-            }
-        }
+        // foreach (TileBase selected in selectedTiles)
+        // {
+        //     if (selected is not null && selected.GetType() == typeof(RuleTile))
+        //     {
+        //         Debug.Log(selected);
+        //     }
+        // }
         
+        // save to storage
+        int vertDist = topRightCell.x - bottomLeftCell.x + 1;
+        int horiDist = topRightCell.y - bottomLeftCell.y + 1;
+        var toSaveTuple = (selectedTiles, vertDist, horiDist);
+        PicStorageTile.Add(toSaveTuple);
+
+    }
+
+    void PlaceObjects()
+    {
+        Vector3 relativePos = targetCam.ScreenToWorldPoint(Input.mousePosition);
+        relativePos.z = targetCam.nearClipPlane;
+        Debug.Log(relativePos);
+        Vector3Int start_pos = new Vector3Int(Mathf.FloorToInt(relativePos.x), Mathf.FloorToInt(relativePos.y), 0);
+        start_pos -= new Vector3Int(Mathf.FloorToInt(PicStorageTile[0].Item2/2), Mathf.FloorToInt(PicStorageTile[0].Item3/2), 0);
+        // now only place the first picture
+        for (int i = 0; i < PicStorageTile[0].Item1.Length; i++)
+        {
+            if (PicStorageTile[0].Item1[i] is not null && PicStorageTile[0].Item1[i].GetType() == typeof(RuleTile))
+            {
+                tilemap.SetTile(start_pos + new Vector3Int(i % PicStorageTile[0].Item2, Mathf.FloorToInt(i/PicStorageTile[0].Item2) ,0), tile);
+            }
+            
+        }
     }
 }
 

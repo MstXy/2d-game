@@ -1313,6 +1313,7 @@ MonoBehaviour:
   m_Canvas: {fileID: 2130915170}
   tilemap: {fileID: 1645988791}
   tile: {fileID: 11400000, guid: c0a72b2f2922a4241ba1735d8082c260, type: 2}
+  PhotoCap: 10
   selectionBox: {fileID: 1846415534}
 --- !u!4 &776544373
 Transform:
@@ -3756,7 +3757,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 243, y: 269}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 300, y: 400}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1846415535
 MonoBehaviour:
