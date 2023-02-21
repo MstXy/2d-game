@@ -1314,7 +1314,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0c24c9eb1dac6842a049743b2244caa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetCam: {fileID: 874660231}
+  targetCam: {fileID: 0}
   m_Canvas: {fileID: 2130915170}
   tilemap: {fileID: 1645988791}
   tile: {fileID: 11400000, guid: c0a72b2f2922a4241ba1735d8082c260, type: 2}
@@ -1418,10 +1418,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4687200001476508, guid: bb0018ce3a8caa643b44f8487c34bd25, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -13.5
+      value: -21.26
       objectReference: {fileID: 0}
     - target: {fileID: 4763125205162874, guid: bb0018ce3a8caa643b44f8487c34bd25, type: 3}
       propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4763125205162874, guid: bb0018ce3a8caa643b44f8487c34bd25, type: 3}
+      propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4763125205162874, guid: bb0018ce3a8caa643b44f8487c34bd25, type: 3}
@@ -1430,12 +1434,17 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4763125205162874, guid: bb0018ce3a8caa643b44f8487c34bd25, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -13.5
+      value: -21.26
       objectReference: {fileID: 0}
     - target: {fileID: 20705072592914946, guid: bb0018ce3a8caa643b44f8487c34bd25,
         type: 3}
       propertyPath: orthographic
-      value: 1
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 20705072592914946, guid: bb0018ce3a8caa643b44f8487c34bd25,
+        type: 3}
+      propertyPath: field of view
+      value: 46
       objectReference: {fileID: 0}
     - target: {fileID: 20705072592914946, guid: bb0018ce3a8caa643b44f8487c34bd25,
         type: 3}
@@ -1494,13 +1503,18 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5895922727484609076, guid: bb0018ce3a8caa643b44f8487c34bd25,
         type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5895922727484609076, guid: bb0018ce3a8caa643b44f8487c34bd25,
+        type: 3}
       propertyPath: m_LocalPosition.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5895922727484609076, guid: bb0018ce3a8caa643b44f8487c34bd25,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: -13.5
+      value: -21.26
       objectReference: {fileID: 0}
     - target: {fileID: 6959368525362780840, guid: bb0018ce3a8caa643b44f8487c34bd25,
         type: 3}
@@ -1512,6 +1526,11 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 14
       objectReference: {fileID: 0}
+    - target: {fileID: 7503495046023119950, guid: bb0018ce3a8caa643b44f8487c34bd25,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7888341434349102548, guid: bb0018ce3a8caa643b44f8487c34bd25,
         type: 3}
       propertyPath: m_Enabled
@@ -1521,6 +1540,11 @@ PrefabInstance:
         type: 3}
       propertyPath: orthographic
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8412559993904938643, guid: bb0018ce3a8caa643b44f8487c34bd25,
+        type: 3}
+      propertyPath: field of view
+      value: 46
       objectReference: {fileID: 0}
     - target: {fileID: 8412559993904938643, guid: bb0018ce3a8caa643b44f8487c34bd25,
         type: 3}
@@ -1864,12 +1888,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!20 &874660231 stripped
-Camera:
-  m_CorrespondingSourceObject: {fileID: 8412559993904938643, guid: bb0018ce3a8caa643b44f8487c34bd25,
-    type: 3}
-  m_PrefabInstance: {fileID: 782878104}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &909536361
 GameObject:
   m_ObjectHideFlags: 0
@@ -5990,7 +6008,7 @@ GameObject:
   - component: {fileID: 2096991117}
   - component: {fileID: 2096991116}
   m_Layer: 0
-  m_Name: Sky
+  m_Name: Sky_legacy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6166,7 +6184,7 @@ Canvas:
   m_Enabled: 1
   serializedVersion: 3
   m_RenderMode: 1
-  m_Camera: {fileID: 874660231}
+  m_Camera: {fileID: 0}
   m_PlaneDistance: 1
   m_PixelPerfect: 0
   m_ReceivesEvents: 1

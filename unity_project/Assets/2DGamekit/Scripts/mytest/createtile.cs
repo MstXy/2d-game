@@ -28,6 +28,7 @@ public class createtile : MonoBehaviour
     
     private float photoWidth = 300; // need tweak
     private float photoHeight = 400; // need tweak
+    private float cameraDistance = (float)12; // no idea why, but it works
     private int m_PhotoStorageIdx = 0; // save photo from idx=0;
     private Vector2 boxBorderOffset = new Vector2(22, 22); // in screen space, pixel count
     private bool isSelecting = false;
@@ -140,8 +141,8 @@ public class createtile : MonoBehaviour
         // Select Tiles ------------
         Grid grid = tilemap.layoutGrid;
         // convert to world
-        Vector3 worldMin = targetCam.ScreenToWorldPoint(photo_minValue);
-        Vector3 worldMax = targetCam.ScreenToWorldPoint(photo_maxValue);
+        Vector3 worldMin = targetCam.ScreenToWorldPoint(new Vector3(photo_minValue.x, photo_minValue.y, cameraDistance));
+        Vector3 worldMax = targetCam.ScreenToWorldPoint(new Vector3(photo_maxValue.x, photo_maxValue.y, cameraDistance));
 
         // then convert to cell
         Vector3Int bottomLeftCell = grid.WorldToCell(worldMin); 
@@ -246,14 +247,12 @@ public class createtile : MonoBehaviour
     
     void PlaceObjects()
     {
-        // disable photo idx UI
         photoIdxUI.gameObject.SetActive(false);
+        // disable photo idx UI
         // disable photo
         photoImage.gameObject.SetActive(false);
         
-        Vector3 relativePos = targetCam.ScreenToWorldPoint(Input.mousePosition);
-        relativePos.z = targetCam.nearClipPlane;
-        Debug.Log(relativePos);
+        Vector3 relativePos = targetCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, cameraDistance));
         Vector3Int start_pos = new Vector3Int(Mathf.FloorToInt(relativePos.x), Mathf.FloorToInt(relativePos.y), 0);
         start_pos -= new Vector3Int(Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), 0);
         // now only place the first picture
