@@ -1,12 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using BTAI;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using System.IO;
+using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
+using UnityEngine.UI; // for saving and loading photo
 
 public class createtile : MonoBehaviour
 {
@@ -15,12 +16,19 @@ public class createtile : MonoBehaviour
     [SerializeField] private Tilemap tilemap;
     [SerializeField] private TileBase tile;
     [SerializeField] private TMP_Text photoIdxUI;
-    private Vector3Int m_Pos = new Vector3Int(2,2,0);
-
+    [SerializeField] private Image photoImage;
+    
     public int PhotoCap = 10;
     [System.NonSerialized] public List<(TileBase[], int, int)> PicStorageTile = new List<(TileBase[], int, int)>();
+    [System.NonSerialized] public List<Texture2D> PhotoTempStorage = new List<Texture2D>();
     [System.NonSerialized] public int photoIdx = 0;
+    [System.NonSerialized] public Vector2 photo_minValue;
+    [System.NonSerialized] public Vector2 photo_maxValue;
+    [System.NonSerialized] public bool shootPhoto = false;
     
+    private float photoWidth = 300; // need tweak
+    private float photoHeight = 400; // need tweak
+    private int m_PhotoStorageIdx = 0; // save photo from idx=0;
     private Vector2 boxBorderOffset = new Vector2(22, 22); // in screen space, pixel count
     private bool isSelecting = false;
     private bool isPlacing = false;
@@ -28,22 +36,28 @@ public class createtile : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        tilemap.SetTile(m_Pos, tile);
+        // clear Photo Storage.
+        System.IO.DirectoryInfo di = new DirectoryInfo(Application.dataPath + "/Resources/");
+        foreach (FileInfo file in di.GetFiles("*PhotoStorage_*"))
+        {
+            file.Delete(); 
+        }
+        
     }
 
+    private void LateUpdate()
+    {
+        // capture image on shot.
+        if (shootPhoto)
+        {
+            Capture(photo_minValue, photo_maxValue);
+            shootPhoto = false;
+        }
+    }
+    
     // Update is called once per frame
     void Update()
     {
-        // // draw tiles
-        // if (Input.GetMouseButtonDown(0))
-        // {
-        //     Vector3 relativePos = targetCam.ScreenToWorldPoint(Input.mousePosition);
-        //     relativePos.z = targetCam.nearClipPlane;
-        //     Debug.Log(relativePos);
-        //     Vector3Int pos = new Vector3Int(Mathf.FloorToInt(relativePos.x), Mathf.FloorToInt(relativePos.y), 0);
-        //     tilemap.SetTile(pos, tile);
-        // }
-
         if (Input.GetKeyDown(KeyCode.P))
         {
             // Enter camera mode.
@@ -51,12 +65,13 @@ public class createtile : MonoBehaviour
             // - freeze time?
             // define capture-ables: now only tiles
             // - add other objects later.
-            
+
             Debug.Log("Entering Camera Mode.");
             // show selection box
             isSelecting = true;
-            
+
         }
+
         if (Input.GetKeyDown(KeyCode.Q))
         {
             Debug.Log("Exiting Camera Mode.");
@@ -86,11 +101,18 @@ public class createtile : MonoBehaviour
                 UpdateSelectionBox(isSelecting);
             }
         }
+
         // Placing Mode
         if (isPlacing)
         {
+            // press "M" to exit placing photo
+            if (Input.GetKeyDown(KeyCode.M))
+            {
+                Debug.Log("Exiting Placing Photo.");
+                isPlacing = false;
+            }
             UpdateSelectionBox(isPlacing);
-            SelectPhotoIndex();
+            SelectPhotoIndex(isPlacing);
             if (Input.GetMouseButtonDown(0))
             {
                 PlaceObjects();
@@ -99,12 +121,11 @@ public class createtile : MonoBehaviour
             }
         }
     }
+
     void UpdateSelectionBox(bool update)
     {
         selectionBox.gameObject.SetActive(update);
-        float width = 300; // need tweak
-        float height = 400; // need tweak
-        selectionBox.sizeDelta = new Vector2(width, height);
+        selectionBox.sizeDelta = new Vector2(photoWidth, photoHeight);
         selectionBox.anchoredPosition = new Vector2(
             Input.mousePosition.x / m_Canvas.scaleFactor,
             Input.mousePosition.y / m_Canvas.scaleFactor
@@ -113,14 +134,14 @@ public class createtile : MonoBehaviour
 
     void SelectObjects()
     {
-        Vector2 minValue = selectionBox.anchoredPosition - (selectionBox.sizeDelta / 2) + boxBorderOffset;
-        Vector2 maxValue = selectionBox.anchoredPosition + (selectionBox.sizeDelta / 2) - boxBorderOffset;
+        photo_minValue = selectionBox.anchoredPosition - (selectionBox.sizeDelta / 2) + boxBorderOffset;
+        photo_maxValue = selectionBox.anchoredPosition + (selectionBox.sizeDelta / 2) - boxBorderOffset;
         
         // Select Tiles ------------
         Grid grid = tilemap.layoutGrid;
         // convert to world
-        Vector3 worldMin = targetCam.ScreenToWorldPoint(minValue);
-        Vector3 worldMax = targetCam.ScreenToWorldPoint(maxValue);
+        Vector3 worldMin = targetCam.ScreenToWorldPoint(photo_minValue);
+        Vector3 worldMax = targetCam.ScreenToWorldPoint(photo_maxValue);
 
         // then convert to cell
         Vector3Int bottomLeftCell = grid.WorldToCell(worldMin); 
@@ -136,27 +157,52 @@ public class createtile : MonoBehaviour
         TileBase[] selectedTiles = tilemap.GetTilesBlock(bounds);
 
         Debug.Log(selectedTiles.Length);
-        // foreach (TileBase selected in selectedTiles)
-        // {
-        //     if (selected is not null && selected.GetType() == typeof(RuleTile))
-        //     {
-        //         Debug.Log(selected);
-        //     }
-        // }
         
         // save to storage
         int vertDist = topRightCell.x - bottomLeftCell.x + 1;
-        int horiDist = topRightCell.y - bottomLeftCell.y + 1;
-        var toSaveTuple = (selectedTiles, vertDist, horiDist);
+        int horDist = topRightCell.y - bottomLeftCell.y + 1;
+        var toSaveTuple = (selectedTiles, vertDist, horDist);
         PicStorageTile.Add(toSaveTuple);
+        
+        // save photo
+        // need LateUpdate(); so use a state;
+        shootPhoto = true;
+    }
+    
+    void Capture(Vector2 bl, Vector2 tr)
+    {
+        // bl: bottom left anchor
+        // tr: top right anchor
+
+        int width = (int)(tr.x - bl.x);
+        int height = (int)(tr.y - bl.y);
+        
+        RenderTexture activeRenderTexture = RenderTexture.active;
+        RenderTexture.active = targetCam.targetTexture;
+ 
+        targetCam.Render();
+ 
+        Texture2D image = new Texture2D(width, height);
+        image.ReadPixels(new Rect(bl.x, bl.y, width, height), 0, 0);
+        image.Apply();
+        RenderTexture.active = activeRenderTexture;
+        
+        byte[] bytes = image.EncodeToPNG();
+        
+        // also save to temp
+        PhotoTempStorage.Add(image);
+        // Destroy(image);
+ 
+        File.WriteAllBytes(Application.dataPath + "/Resources/PhotoStorage_" + m_PhotoStorageIdx + ".png", bytes);
+        m_PhotoStorageIdx++;
+        
 
     }
-
-    void SelectPhotoIndex()
+    void SelectPhotoIndex(bool update)
     {
         var totalLength = PicStorageTile.Count;
         // enable photo idx UI
-        photoIdxUI.gameObject.SetActive(true);
+        photoIdxUI.gameObject.SetActive(update);
         // scroll through photos
         if (Input.GetAxisRaw("Mouse ScrollWheel") > 0)
         {
@@ -185,13 +231,25 @@ public class createtile : MonoBehaviour
         }
         // update photo idx UI
         photoIdxUI.text = "Photo: " + photoIdx.ToString("0");
-
+        
+        // show photo in frame
+        // Sprite photo = Resources.Load<Sprite>("PhotoStorage_" + photoIdx);
+        Sprite photo = Sprite.Create(PhotoTempStorage[photoIdx], new Rect(0, 0, PhotoTempStorage[photoIdx].width, PhotoTempStorage[photoIdx].height), new Vector2(0,0));
+        photoImage.GetComponent<Image>().sprite = photo;
+        photoImage.gameObject.SetActive(update);
+        photoImage.GetComponent<RectTransform>().sizeDelta = new Vector2(photoWidth, photoHeight);
+        photoImage.GetComponent<RectTransform>().anchoredPosition = new Vector2(
+            Input.mousePosition.x / m_Canvas.scaleFactor,
+            Input.mousePosition.y / m_Canvas.scaleFactor
+        );
     }
     
     void PlaceObjects()
     {
         // disable photo idx UI
         photoIdxUI.gameObject.SetActive(false);
+        // disable photo
+        photoImage.gameObject.SetActive(false);
         
         Vector3 relativePos = targetCam.ScreenToWorldPoint(Input.mousePosition);
         relativePos.z = targetCam.nearClipPlane;
