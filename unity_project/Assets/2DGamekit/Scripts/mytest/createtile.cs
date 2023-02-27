@@ -28,14 +28,15 @@ public class createtile : MonoBehaviour
     [System.NonSerialized] public bool rotationTake = false; // true for horizontal, false for vertical
     [System.NonSerialized] public int rotationPlace = 0; // 0: default vertical, 1: -90, 2: -180, 3: -270
     
-    private float photoWidth = 300; // need tweak
-    private float photoHeight = 400; // need tweak
+    private float photoWidth = 150; // need tweak
+    private float photoHeight = 200; // need tweak
     private float cameraDistance = (float)12; // no idea why, but it works
     private int m_PhotoStorageIdx = 0; // save photo from idx=0;
     private Vector2 boxBorderOffset = new Vector2(22, 22); // in screen space, pixel count
     private bool isSelecting = false;
     private bool isPlacing = false;
     public RectTransform selectionBox;
+    public RectTransform selectionBoxFrame;
     // Start is called before the first frame update
     void Start()
     {
@@ -148,10 +149,23 @@ public class createtile : MonoBehaviour
     void UpdateSelectionBox(bool update)
     {
         selectionBox.gameObject.SetActive(update);
-        selectionBox.sizeDelta = rotationTake ? new Vector2(photoHeight, photoWidth) : new Vector2(photoWidth, photoHeight); 
+        selectionBox.sizeDelta = rotationTake ? new Vector2(photoHeight, photoWidth) : new Vector2(photoWidth, photoHeight);
         selectionBox.anchoredPosition = new Vector2(
             Input.mousePosition.x / m_Canvas.scaleFactor,
             Input.mousePosition.y / m_Canvas.scaleFactor
+        );
+        
+        // update frame
+        // need offsets
+        selectionBoxFrame.gameObject.SetActive(update);
+        selectionBoxFrame.sizeDelta = new Vector2(photoWidth+15, photoHeight+75);
+        selectionBoxFrame.eulerAngles = rotationTake ? new Vector3(0, 0, -90) : new Vector3(0, 0, 0);
+        selectionBoxFrame.anchoredPosition = rotationTake ? new Vector2(
+            Input.mousePosition.x- (float)22.5 / m_Canvas.scaleFactor,
+            Input.mousePosition.y / m_Canvas.scaleFactor
+        ) : new Vector2(
+            Input.mousePosition.x / m_Canvas.scaleFactor,
+            Input.mousePosition.y- (float)22.5 / m_Canvas.scaleFactor
         );
     }
 
