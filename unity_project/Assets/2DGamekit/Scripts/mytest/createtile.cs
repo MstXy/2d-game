@@ -19,12 +19,14 @@ public class createtile : MonoBehaviour
     [SerializeField] private Image photoImage;
     
     public int PhotoCap = 10;
-    [System.NonSerialized] public List<(TileBase[], int, int)> PicStorageTile = new List<(TileBase[], int, int)>();
+    [System.NonSerialized] public List<(TileBase[], int, int, bool)> PicStorageTile = new List<(TileBase[], int, int, bool)>();
     [System.NonSerialized] public List<Texture2D> PhotoTempStorage = new List<Texture2D>();
     [System.NonSerialized] public int photoIdx = 0;
     [System.NonSerialized] public Vector2 photo_minValue;
     [System.NonSerialized] public Vector2 photo_maxValue;
     [System.NonSerialized] public bool shootPhoto = false;
+    [System.NonSerialized] public bool rotationTake = false; // true for horizontal, false for vertical
+    [System.NonSerialized] public int rotationPlace = 0; // 0: default vertical, 1: -90, 2: -180, 3: -270
     
     private float photoWidth = 300; // need tweak
     private float photoHeight = 400; // need tweak
@@ -59,6 +61,7 @@ public class createtile : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // game control
         if (Input.GetKeyDown(KeyCode.P))
         {
             // Enter camera mode.
@@ -70,7 +73,23 @@ public class createtile : MonoBehaviour
             Debug.Log("Entering Camera Mode.");
             // show selection box
             isSelecting = true;
+            // reset rotation
+            rotationTake = false;
+            rotationPlace = 0;
+        }
 
+        if (Input.GetKeyDown(KeyCode.O))
+        {
+            // change photo taking direction: vertical/horizontal
+            rotationTake = !rotationTake;
+            // change photo placing direction:
+            if (rotationPlace > 2) {
+                rotationPlace = 0;
+            } else {
+                rotationPlace += 1;
+            }
+
+            
         }
 
         if (Input.GetKeyDown(KeyCode.Q))
@@ -88,6 +107,9 @@ public class createtile : MonoBehaviour
             isPlacing = true;
             // reset photo index
             photoIdx = 0;
+            // reset rotation
+            rotationTake = false;
+            rotationPlace = 0;
         }
 
         // Camera Mode
@@ -126,7 +148,7 @@ public class createtile : MonoBehaviour
     void UpdateSelectionBox(bool update)
     {
         selectionBox.gameObject.SetActive(update);
-        selectionBox.sizeDelta = new Vector2(photoWidth, photoHeight);
+        selectionBox.sizeDelta = rotationTake ? new Vector2(photoHeight, photoWidth) : new Vector2(photoWidth, photoHeight); 
         selectionBox.anchoredPosition = new Vector2(
             Input.mousePosition.x / m_Canvas.scaleFactor,
             Input.mousePosition.y / m_Canvas.scaleFactor
@@ -162,7 +184,7 @@ public class createtile : MonoBehaviour
         // save to storage
         int vertDist = topRightCell.x - bottomLeftCell.x + 1;
         int horDist = topRightCell.y - bottomLeftCell.y + 1;
-        var toSaveTuple = (selectedTiles, vertDist, horDist);
+        var toSaveTuple = (selectedTiles, vertDist, horDist, rotationTake);
         PicStorageTile.Add(toSaveTuple);
         
         // save photo
@@ -235,10 +257,27 @@ public class createtile : MonoBehaviour
         
         // show photo in frame
         // Sprite photo = Resources.Load<Sprite>("PhotoStorage_" + photoIdx);
+        var match_rotation = PicStorageTile[photoIdx].Item4 == false; // check if is vertical
         Sprite photo = Sprite.Create(PhotoTempStorage[photoIdx], new Rect(0, 0, PhotoTempStorage[photoIdx].width, PhotoTempStorage[photoIdx].height), new Vector2(0,0));
         photoImage.GetComponent<Image>().sprite = photo;
         photoImage.gameObject.SetActive(update);
-        photoImage.GetComponent<RectTransform>().sizeDelta = new Vector2(photoWidth, photoHeight);
+        photoImage.GetComponent<RectTransform>().sizeDelta = match_rotation ? new Vector2(photoWidth, photoHeight) : new Vector2(photoHeight, photoWidth);
+        photoImage.GetComponent<RectTransform>().eulerAngles = new Vector3(0,0,match_rotation ? 0 : -90);
+        switch (rotationPlace)
+        {
+            case 0:
+                photoImage.GetComponent<RectTransform>().eulerAngles = new Vector3(0,0,match_rotation ? 0 : -90);
+                break;
+            case 1:
+                photoImage.GetComponent<RectTransform>().eulerAngles = new Vector3(0,0,match_rotation ? -90 : -180);
+                break;
+            case 2:
+                photoImage.GetComponent<RectTransform>().eulerAngles = new Vector3(0,0,match_rotation ? -180 : -270);
+                break;
+            case 3:
+                photoImage.GetComponent<RectTransform>().eulerAngles = new Vector3(0,0,match_rotation ? -270 : 0);
+                break;
+        }
         photoImage.GetComponent<RectTransform>().anchoredPosition = new Vector2(
             Input.mousePosition.x / m_Canvas.scaleFactor,
             Input.mousePosition.y / m_Canvas.scaleFactor
@@ -254,13 +293,85 @@ public class createtile : MonoBehaviour
         
         Vector3 relativePos = targetCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, cameraDistance));
         Vector3Int start_pos = new Vector3Int(Mathf.FloorToInt(relativePos.x), Mathf.FloorToInt(relativePos.y), 0);
-        start_pos -= new Vector3Int(Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), 0);
-        // now only place the first picture
+        var match_rotation = PicStorageTile[photoIdx].Item4 == false; // check if is vertical
+        switch (rotationPlace)
+        {
+            case 0:
+                start_pos += match_rotation ? new Vector3Int(-Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), -Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), 0) : new Vector3Int(-Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), 0);
+                break;
+            case 1:
+                start_pos += match_rotation ? new Vector3Int(-Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), 0) : new Vector3Int(Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), 0);
+                break;
+            case 2:
+                start_pos += match_rotation ? new Vector3Int(Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), 0) : new Vector3Int(Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), -Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), 0);
+                break;
+            case 3:
+                start_pos += match_rotation ? new Vector3Int(Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), -Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), 0) : new Vector3Int(-Mathf.FloorToInt(PicStorageTile[photoIdx].Item2/2), -Mathf.FloorToInt(PicStorageTile[photoIdx].Item3/2), 0);
+                break;
+        }
         for (int i = 0; i < PicStorageTile[photoIdx].Item1.Length; i++)
         {
             if (PicStorageTile[photoIdx].Item1[i] is not null && PicStorageTile[photoIdx].Item1[i].GetType() == typeof(RuleTile))
             {
-                tilemap.SetTile(start_pos + new Vector3Int(i % PicStorageTile[photoIdx].Item2, Mathf.FloorToInt(i/PicStorageTile[photoIdx].Item2) ,0), tile);
+                switch (rotationPlace)
+                {
+                    case 0:
+                        if (match_rotation)
+                        {
+                            tilemap.SetTile(
+                                start_pos + new Vector3Int(i % PicStorageTile[photoIdx].Item2,
+                                    Mathf.FloorToInt(i / PicStorageTile[photoIdx].Item2), 0), tile);
+                        }
+                        else
+                        {
+                            tilemap.SetTile(
+                                start_pos + new Vector3Int(Mathf.FloorToInt(i / PicStorageTile[photoIdx].Item2), 
+                                    - i % PicStorageTile[photoIdx].Item2 ,0), tile);
+                        }
+                        break;
+                    case 1:
+                        if (match_rotation)
+                        {
+                            tilemap.SetTile(
+                                start_pos + new Vector3Int(Mathf.FloorToInt(i / PicStorageTile[photoIdx].Item2), 
+                                    - i % PicStorageTile[photoIdx].Item2 ,0), tile);
+                        }
+                        else
+                        {
+                            tilemap.SetTile(
+                                start_pos + new Vector3Int(- i % PicStorageTile[photoIdx].Item2,
+                                    - Mathf.FloorToInt(i / PicStorageTile[photoIdx].Item2), 0), tile);
+                        }
+                        break;
+                    case 2:
+                        if (match_rotation)
+                        {
+                            tilemap.SetTile(
+                                start_pos + new Vector3Int(- i % PicStorageTile[photoIdx].Item2,
+                                    - Mathf.FloorToInt(i / PicStorageTile[photoIdx].Item2), 0), tile);
+                        }
+                        else
+                        {
+                            tilemap.SetTile(
+                                start_pos + new Vector3Int(- Mathf.FloorToInt(i / PicStorageTile[photoIdx].Item2), 
+                                     i % PicStorageTile[photoIdx].Item2 ,0), tile);
+                        }
+                        break;
+                    case 3:
+                        if (match_rotation)
+                        {
+                            tilemap.SetTile(
+                                start_pos + new Vector3Int(- Mathf.FloorToInt(i / PicStorageTile[photoIdx].Item2), 
+                                    i % PicStorageTile[photoIdx].Item2 ,0), tile);
+                        }
+                        else
+                        {
+                            tilemap.SetTile(
+                                start_pos + new Vector3Int(i % PicStorageTile[photoIdx].Item2,
+                                    Mathf.FloorToInt(i / PicStorageTile[photoIdx].Item2), 0), tile);
+                        }
+                        break;
+                }
             }
             
         }
